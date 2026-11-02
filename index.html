@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sabito — a Discord prediction game for League of Legends friends</title>
+<meta name="description" content="Sabito is a free Discord bot where friends bet fictional points on each other's League of Legends matches. Points have no real-world value.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f3f7f8;
+  --surface: #ffffff;
+  --ink: #15303a;
+  --muted: #475f69;
+  --line: #cddce1;
+  --accent: #17667f;
+  --accent-soft: #dcecf1;
+  --callout-bg: #0f4a5e;
+  --callout-ink: #f3f7f8;
+  --win: #2f8f5b;
+  --lose: #c0453d;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1d23;
+    --surface: #14272e;
+    --ink: #e6eff2;
+    --muted: #a3bac2;
+    --line: #26424b;
+    --accent: #72c5dc;
+    --accent-soft: #1b3a45;
+    --callout-bg: #1c4a5a;
+    --callout-ink: #eef5f7;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 5rem; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1.0625rem/1.65 var(--body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Language switch: both languages stay in the HTML, only one is shown. */
+html[data-lang="en"] .pt, html[data-lang="pt"] .en { display: none; }
+
+a { color: var(--accent); text-underline-offset: 0.18em; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { width: min(1080px, 100% - 2.5rem); margin-inline: auto; }
+
+/* Header */
+header.top {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+header.top .wrap { display: flex; align-items: center; gap: 1.5rem; padding-block: 0.8rem; }
+.brand { font: 700 1.35rem/1 var(--display); letter-spacing: -0.01em; color: var(--ink); text-decoration: none; }
+nav.main { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-left: auto; font-size: 0.95rem; }
+nav.main a { color: var(--muted); text-decoration: none; }
+nav.main a:hover { color: var(--ink); text-decoration: underline; }
+.lang { display: flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.lang button {
+  font: 600 0.85rem/1 var(--body); padding: 0.5rem 0.8rem; border: 0; background: transparent;
+  color: var(--muted); cursor: pointer;
+}
+.lang button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
+
+/* Hero */
+.hero { padding-block: clamp(2.5rem, 7vw, 5rem); }
+.hero .wrap { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+h1 {
+  font: 700 clamp(2.1rem, 4.6vw, 3.3rem)/1.08 var(--display);
+  letter-spacing: -0.025em; margin: 0 0 1.1rem; text-wrap: balance;
+}
+.lede { font-size: 1.2rem; color: var(--muted); max-width: 34rem; margin: 0 0 1.5rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.6rem; padding: 0; margin: 0; list-style: none; }
+.chips li {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+  padding: 0.35rem 0.9rem; font-size: 0.92rem; font-weight: 500;
+}
+
+/* Sample match post: a faithful sketch of the Discord message, with made-up data */
+figure.sample { margin: 0; }
+.embed {
+  background: #2b2d31; color: #dbdee1; border-left: 4px solid #f1c40f; border-radius: 6px;
+  padding: 1rem 1.1rem; font: 400 0.9rem/1.5 "Public Sans", system-ui, sans-serif;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25);
+}
+.embed h3 { margin: 0 0 0.15rem; font: 600 1rem/1.3 var(--body); color: #fff; }
+.embed .meta { color: #b5bac1; margin: 0 0 0.8rem; }
+.embed .teams { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 0.8rem; }
+.embed .team b { display: block; color: #fff; margin-bottom: 0.15rem; font-weight: 600; }
+.embed .team p { margin: 0 0 0.35rem; font-size: 0.84rem; line-height: 1.4; }
+.embed .team span { color: #b5bac1; }
+.embed .bets { border-top: 1px solid #3f4147; padding-top: 0.7rem; margin: 0; }
+.embed .bets p { margin: 0 0 0.2rem; }
+.embed .btns { display: flex; gap: 0.5rem; margin-top: 0.8rem; }
+.embed .btns span { border-radius: 4px; padding: 0.4rem 0.9rem; font-weight: 600; font-size: 0.85rem; color: #fff; }
+.embed .btns .w { background: #248046; }
+.embed .btns .l { background: #da373c; }
+.embed .btns .p { background: #4e5058; }
+figure.sample figcaption { margin-top: 0.7rem; font-size: 0.88rem; color: var(--muted); }
+
+/* Sections */
+section.block { padding-block: clamp(2.2rem, 5vw, 3.5rem); border-top: 1px solid var(--line); }
+h2 { font: 700 clamp(1.5rem, 2.8vw, 1.9rem)/1.2 var(--display); letter-spacing: -0.015em; margin: 0 0 1.1rem; }
+h3 { font: 600 1.08rem/1.3 var(--body); margin: 1.6rem 0 0.4rem; }
+.prose { max-width: 44rem; }
+.prose p { margin: 0 0 1rem; }
+.prose ul, .prose ol { padding-left: 1.3rem; margin: 0 0 1rem; }
+.prose li { margin-bottom: 0.45rem; }
+.prose li::marker { color: var(--accent); }
+.cols { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: start; }
+
+/* The one loud block: the points disclaimer */
+.callout {
+  background: var(--callout-bg); color: var(--callout-ink);
+  border-radius: 14px; padding: clamp(1.5rem, 4vw, 2.5rem);
+}
+.callout h2 { color: inherit; max-width: 22ch; margin-bottom: 0.9rem; }
+.callout p, .callout li { color: color-mix(in srgb, var(--callout-ink) 92%, transparent); }
+.callout ul { padding-left: 1.2rem; margin: 0; max-width: 46rem; }
+.callout li { margin-bottom: 0.5rem; }
+.callout li::marker { color: var(--callout-ink); }
+.callout strong { color: #fff; }
+
+/* Table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.97rem; }
+th, td { text-align: left; padding: 0.8rem 1rem; vertical-align: top; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+th { font-weight: 600; background: var(--accent-soft); }
+td:first-child { font-weight: 600; white-space: nowrap; }
+code { font: 500 0.92em ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--accent-soft); padding: 0.08em 0.35em; border-radius: 4px; }
+
+.updated { color: var(--muted); font-size: 0.92rem; margin-top: 1.5rem; }
+
+footer { border-top: 1px solid var(--line); padding-block: 2rem 3rem; color: var(--muted); font-size: 0.9rem; }
+footer p { max-width: 52rem; margin: 0 0 0.8rem; }
+
+@media (max-width: 860px) {
+  .hero .wrap, .cols { grid-template-columns: 1fr; }
+  header.top .wrap { flex-wrap: wrap; }
+  nav.main { order: 3; width: 100%; margin-left: 0; gap: 1rem; }
+  .lang { margin-left: auto; }
+}
+@media (max-width: 480px) {
+  .embed .teams { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top">Sabito</a>
+    <nav class="main" aria-label="Sections">
+      <a href="#what"><span class="en">What it does</span><span class="pt">O que faz</span></a>
+      <a href="#points"><span class="en">Points</span><span class="pt">Pontos</span></a>
+      <a href="#riot"><span class="en">Riot API</span><span class="pt">API da Riot</span></a>
+      <a href="#privacy"><span class="en">Privacy</span><span class="pt">Privacidade</span></a>
+      <a href="#contact"><span class="en">Contact</span><span class="pt">Contato</span></a>
+    </nav>
+    <div class="lang" role="group" aria-label="Language / Idioma">
+      <button type="button" data-set="en" aria-pressed="true">EN</button>
+      <button type="button" data-set="pt" aria-pressed="false">PT</button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- Hero -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <div class="en" lang="en">
+        <h1>A Discord prediction game for League of Legends friends</h1>
+        <p class="lede">When someone in your server starts a match, Sabito opens a short window where members bet fictional points on whether they will win or lose. No real money, ever.</p>
+      </div>
+      <div class="pt" lang="pt-BR">
+        <h1>Um jogo de apostas no Discord para amigos que jogam League of Legends</h1>
+        <p class="lede">Quando alguém do servidor inicia uma partida, o Sabito abre uma janela curta em que os membros apostam pontos fictícios se ele vai vencer ou perder. Sem dinheiro de verdade, nunca.</p>
+      </div>
+      <ul class="chips">
+        <li><span class="en">Free</span><span class="pt">Gratuito</span></li>
+        <li><span class="en">No ads</span><span class="pt">Sem anúncios</span></li>
+        <li><span class="en">Fictional points only</span><span class="pt">Só pontos fictícios</span></li>
+      </ul>
+    </div>
+
+    <figure class="sample">
+      <div class="embed" role="img" aria-label="Example of a Sabito match post in Discord, with sample data">
+        <h3>🎮 MATCH · Summoner1#BR1</h3>
+        <p class="meta">Ranked Solo/Duo · bets close in 3:12</p>
+        <div class="teams">
+          <div class="team">
+            <b>🔵 Their team</b>
+            <p>Summoner1#BR1<br><span>Ahri · Gold II · 40 LP</span></p>
+            <p>Player2#BR1<br><span>Lux · Gold IV · 12 LP</span></p>
+          </div>
+          <div class="team">
+            <b>🔴 Enemy team</b>
+            <p>Player6#BR1<br><span>Zed · Gold I · 75 LP</span></p>
+            <p>Player7#BR1<br><span>Lulu · Silver I · 90 LP</span></p>
+          </div>
+        </div>
+        <div class="bets">
+          <p>✅ <b>Victory</b> · 1,200 pts · 4 bets · <b>1.58x</b></p>
+          <p>❌ <b>Defeat</b> · 700 pts · 2 bets · <b>2.71x</b></p>
+        </div>
+        <div class="btns"><span class="w">Victory</span><span class="l">Defeat</span><span class="p">✨ Power</span></div>
+      </div>
+      <figcaption>
+        <span class="en">Sample of a match post. Names and numbers are made up; “pts” are fictional points.</span>
+        <span class="pt">Exemplo de anúncio de partida. Nomes e números são inventados; “pts” são pontos fictícios.</span>
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- What it does -->
+<section class="block" id="what">
+  <div class="wrap cols">
+    <h2><span class="en">What Sabito does</span><span class="pt">O que o Sabito faz</span></h2>
+    <div class="prose">
+      <div class="en" lang="en">
+        <ol>
+          <li>A member links their Riot ID and proves it is theirs by switching to a free profile icon that Sabito picks.</li>
+          <li>When that player starts a supported match, Sabito posts it in the channel the server chose and opens a four-minute betting window.</li>
+          <li>Members bet points on Victory or Defeat. Players cannot bet against the team their own linked account is on.</li>
+          <li>After the match, Sabito reads the result and pays out. If the match is remade, everyone is refunded.</li>
+        </ol>
+        <p>Supported queues: Ranked Solo/Duo, Ranked Flex, Normal Draft, Normal Blind, and also Swiftplay, Quickplay and Clash. Custom games are announced as tests, with betting turned off.</p>
+        <p>Around the bets there are a few light minigames that use the same points: daily and weekly rewards, jobs, a virtual bank, collectible titles from loot boxes, a points-only slot machine, and gifts of points between members.</p>
+      </div>
+      <div class="pt" lang="pt-BR">
+        <ol>
+          <li>Um membro vincula o Riot ID e prova que a conta é dele trocando para um ícone de perfil gratuito escolhido pelo Sabito.</li>
+          <li>Quando esse jogador inicia uma partida compatível, o Sabito a anuncia no canal escolhido pelo servidor e abre uma janela de apostas de quatro minutos.</li>
+          <li>Os membros apostam pontos em Vitória ou Derrota. Quem tem conta vinculada na partida não pode apostar contra o próprio time.</li>
+          <li>Depois da partida, o Sabito lê o resultado e paga as apostas. Se a partida for anulada (remake), todos são reembolsados.</li>
+        </ol>
+        <p>Filas compatíveis: Ranqueada Solo/Duo, Ranqueada Flex, Normal Draft, Normal Blind, além de Swiftplay, Quickplay e Clash. Partidas personalizadas são anunciadas apenas como teste, com as apostas desativadas.</p>
+        <p>Além das apostas, há alguns minigames leves que usam os mesmos pontos: recompensas diária e semanal, trabalhos, banco virtual, títulos colecionáveis em caixas, um caça-níquel só com pontos e presentes de pontos entre membros.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Points -->
+<section class="block" id="points">
+  <div class="wrap">
+    <div class="callout">
+      <div class="en" lang="en">
+        <h2>Points are fictional and have no real-world value</h2>
+        <ul>
+          <li><strong>Free to play.</strong> Everyone starts with 1,000 points and earns more through daily rewards and play.</li>
+          <li><strong>No purchase, no cash-out.</strong> Points cannot be bought, and they cannot be redeemed for money, prizes, gift cards, game items or any service.</li>
+          <li><strong>Gifts stay inside the bot.</strong> Members can send points to each other with daily limits. Selling or trading points for money, items or services outside Sabito is not supported and not permitted.</li>
+          <li><strong>No monetization.</strong> Sabito has no ads and no paid features.</li>
+        </ul>
+      </div>
+      <div class="pt" lang="pt-BR">
+        <h2>Os pontos são fictícios e não têm valor no mundo real</h2>
+        <ul>
+          <li><strong>Gratuito.</strong> Todos começam com 1.000 pontos e ganham mais com recompensas diárias e jogando.</li>
+          <li><strong>Sem compra, sem saque.</strong> Os pontos não podem ser comprados e não podem ser trocados por dinheiro, prêmios, gift cards, itens de jogo ou qualquer serviço.</li>
+          <li><strong>Presentes ficam dentro do bot.</strong> Os membros podem enviar pontos uns aos outros, com limites diários. Vender ou trocar pontos por dinheiro, itens ou serviços fora do Sabito não é suportado nem permitido.</li>
+          <li><strong>Sem monetização.</strong> O Sabito não tem anúncios nem recursos pagos.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Riot API -->
+<section class="block" id="riot">
+  <div class="wrap">
+    <h2><span class="en">How Sabito uses the Riot API</span><span class="pt">Como o Sabito usa a API da Riot</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col"><span class="en">Endpoint</span><span class="pt">Endpoint</span></th>
+            <th scope="col"><span class="en">What it is used for</span><span class="pt">Para que é usado</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>account-v1</td>
+            <td><span class="en">Turns a Riot ID (Name#TAG) into a PUUID when a member links their account.</span><span class="pt">Converte um Riot ID (Nome#TAG) em PUUID quando o membro vincula a conta.</span></td>
+          </tr>
+          <tr>
+            <td>summoner-v4</td>
+            <td><span class="en">Reads the profile icon, to verify that the member owns the account they are linking.</span><span class="pt">Lê o ícone de perfil, para verificar que o membro é dono da conta que está vinculando.</span></td>
+          </tr>
+          <tr>
+            <td>spectator-v5</td>
+            <td><span class="en">Detects when a linked player is in a live match, and gets the match roster for the post.</span><span class="pt">Detecta quando um jogador vinculado está em partida ao vivo e obtém o elenco da partida para o anúncio.</span></td>
+          </tr>
+          <tr>
+            <td>league-v4</td>
+            <td><span class="en">Shows each participant’s rank in the match post. Informational only.</span><span class="pt">Mostra o elo de cada participante no anúncio da partida. Apenas informativo.</span></td>
+          </tr>
+          <tr>
+            <td>match-v5</td>
+            <td><span class="en">Reads the final result (win, loss or remake) to settle the bets.</span><span class="pt">Lê o resultado final (vitória, derrota ou remake) para pagar as apostas.</span></td>
+          </tr>
+          <tr>
+            <td>Data Dragon</td>
+            <td><span class="en">Static data: champion names and profile icon images.</span><span class="pt">Dados estáticos: nomes de campeões e imagens de ícones de perfil.</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="prose">
+      <h3><span class="en">Responsible use</span><span class="pt">Uso responsável</span></h3>
+      <div class="en" lang="en">
+        <ul>
+          <li>Sabito only watches accounts whose owners linked and verified them themselves.</li>
+          <li>A match is posted only after it has started, and only with data the Spectator API returns. Sabito gives no strategy advice and offers no tool that affects gameplay.</li>
+          <li>Requests are made one at a time with pauses between them, each linked account is checked about every 45 seconds, results of pending matches about every 60 seconds, and Sabito waits when the API answers with a rate limit (<code>429</code> and <code>Retry-After</code>).</li>
+          <li>The API key is stored only on the server that runs the bot and is never shown to users.</li>
+        </ul>
+      </div>
+      <div class="pt" lang="pt-BR">
+        <ul>
+          <li>O Sabito só acompanha contas que os próprios donos vincularam e verificaram.</li>
+          <li>A partida só é anunciada depois de iniciada, e apenas com dados que a Spectator API devolve. O Sabito não dá dicas de estratégia nem oferece ferramenta que afete o jogo.</li>
+          <li>As requisições são feitas uma por vez, com pausas entre elas; cada conta vinculada é consultada a cada cerca de 45 segundos, os resultados de partidas pendentes a cada cerca de 60 segundos, e o Sabito espera quando a API responde com limite de taxa (<code>429</code> e <code>Retry-After</code>).</li>
+          <li>A chave da API fica guardada apenas no servidor que executa o bot e nunca é exibida aos usuários.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Privacy -->
+<section class="block" id="privacy">
+  <div class="wrap cols">
+    <h2><span class="en">Privacy policy</span><span class="pt">Política de privacidade</span></h2>
+    <div class="prose">
+      <div class="en" lang="en">
+        <h3>What Sabito stores</h3>
+        <ul>
+          <li>Your Discord user ID and the ID of the server where you use the bot.</li>
+          <li>The Riot ID and PUUID of the League of Legends account you link.</li>
+          <li>Your points balance, bets, statistics, achievements and collected titles in that server.</li>
+          <li>For each match it posts: the roster the Spectator API returns (Riot IDs, champions and ranks of all ten players) and the match result. This is kept as part of the server’s match history.</li>
+        </ul>
+        <h3>What Sabito does not collect</h3>
+        <p>No email address, no real name, no payment information, no location, and no message content. Sabito responds only to its own slash commands and buttons.</p>
+        <h3>How data is used and shared</h3>
+        <p>Data is used only to run the game described above. It is not sold, rented or shared with third parties. The bot runs on the Discloud hosting service, and it talks to Discord and to the Riot Games API to work.</p>
+        <h3>Keeping and deleting data</h3>
+        <ul>
+          <li>You can unlink your account at any time with <code>/desvincular</code>, which removes your linked Riot ID and PUUID.</li>
+          <li>Server managers can erase all game data of their server with <code>/resetar_tudo</code> (linked accounts and channel settings are kept).</li>
+          <li>To have everything about you deleted, including past match records that show your Riot ID, write to the contact below. We answer within 30 days.</li>
+        </ul>
+        <p class="updated">Last updated: November 2, 2026. If this policy changes, this date changes.</p>
+      </div>
+      <div class="pt" lang="pt-BR">
+        <h3>O que o Sabito guarda</h3>
+        <ul>
+          <li>Seu ID de usuário do Discord e o ID do servidor onde você usa o bot.</li>
+          <li>O Riot ID e o PUUID da conta de League of Legends que você vincula.</li>
+          <li>Seu saldo de pontos, apostas, estatísticas, conquistas e títulos coletados naquele servidor.</li>
+          <li>De cada partida anunciada: o elenco que a Spectator API devolve (Riot IDs, campeões e elos dos dez jogadores) e o resultado. Isso fica no histórico de partidas do servidor.</li>
+        </ul>
+        <h3>O que o Sabito não coleta</h3>
+        <p>Nenhum e-mail, nome real, dado de pagamento, localização ou conteúdo de mensagens. O Sabito responde apenas aos próprios comandos de barra e botões.</p>
+        <h3>Como os dados são usados e compartilhados</h3>
+        <p>Os dados servem apenas para executar o jogo descrito acima. Não são vendidos, alugados nem compartilhados com terceiros. O bot roda na hospedagem Discloud e se comunica com o Discord e com a API da Riot Games para funcionar.</p>
+        <h3>Guarda e exclusão de dados</h3>
+        <ul>
+          <li>Você pode desvincular sua conta a qualquer momento com <code>/desvincular</code>, o que remove seu Riot ID e PUUID vinculados.</li>
+          <li>Quem gerencia o servidor pode apagar todos os dados de jogo dele com <code>/resetar_tudo</code> (as contas vinculadas e as configurações de canal são mantidas).</li>
+          <li>Para apagar tudo sobre você, inclusive registros de partidas passadas que mostram seu Riot ID, escreva para o contato abaixo. Respondemos em até 30 dias.</li>
+        </ul>
+        <p class="updated">Última atualização: 2 de novembro de 2026. Se a política mudar, esta data muda.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section class="block" id="contact">
+  <div class="wrap cols">
+    <h2><span class="en">Contact</span><span class="pt">Contato</span></h2>
+    <div class="prose">
+      <p class="en" lang="en">Questions, data-deletion requests or concerns about how Sabito uses Riot data: <a href="mailto:thayfes@gmail.com">thayfes@gmail.com</a></p>
+      <p class="pt" lang="pt-BR">Dúvidas, pedidos de exclusão de dados ou preocupações sobre o uso de dados da Riot pelo Sabito: <a href="mailto:thayfes@gmail.com">thayfes@gmail.com</a></p>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Sabito isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+    <p class="pt" lang="pt-BR">O Sabito não é endossado pela Riot Games e não reflete as opiniões da Riot Games ou de qualquer pessoa oficialmente envolvida na produção ou gestão de propriedades da Riot Games.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var buttons = document.querySelectorAll(".lang button");
+  function setLang(l) {
+    root.setAttribute("data-lang", l);
+    root.setAttribute("lang", l === "pt" ? "pt-BR" : "en");
+    buttons.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.set === l)); });
+  }
+  buttons.forEach(function (b) { b.addEventListener("click", function () { setLang(b.dataset.set); }); });
+})();
+</script>
+</body>
+</html>
